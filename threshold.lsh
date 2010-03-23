@@ -1,0 +1,77 @@
+;load the image library
+(libload "libimage/image-io.lsh")
+
+(de rgbToYuv (rgb)
+	((-idx1- (-double-)) rgb)
+	(let (
+			;rgb-to-yuv conversion table
+			(rgbToYuvTable [
+					[ 0.299    0.587    0.114] 
+					[-0.14713 -0.28886  0.436] 
+					[ 0.615   -0.51499 -0.10001]
+				]
+			)
+		)
+
+		(idx-m2dotm1 rgbToYuvTable rgb)
+	)
+)
+
+(de yuvDistance (p1 p2)
+	((-idx1- (-double-)) p1)
+	((-idx1- (-double-)) p2)
+	(let* (
+			(x (- (p1 0) (p2 0)))
+			(y (- (p1 1) (p2 1)))
+		)
+		(sqrt (+ (* x x) (* y y)))
+	)
+)
+
+;define how we threshold things
+(de threshold (image match threshold) 
+	;declare type for image
+	((-idx3- (-ubyte-)) image)
+	((-idx1- (-double-)) match)
+	((-double-) threshold)
+	
+	;setup our threshold image
+	(let* (
+			(bwImage
+				(matrix 
+					(idx-dim image 0)
+					(idx-dim image 1)
+				)
+			)
+			(yuvMatch (rgbToYuv match))
+		)
+		(idx-gloop ((row image) (i))
+			(idx-gloop ((cell row) (j))
+				(let (
+						(cellV (matrix 3))
+						(yuv (matrix 3))
+					)
+					
+					(idx-gloop ((c cell) (m))
+						(cellV m (c))
+					)
+					
+					(setq yuv (rgbToYuv cellV))
+					
+					(if (> threshold (yuvDistance cellV yuvMatch))
+						(bwImage i j 1)
+						(bwImage i j 0) 
+					)
+				)
+			)
+		)
+		bwImage
+	)
+)
+
+
+(dhc-make ()
+	yuvDistance
+	rgbToYuv
+	threshold
+)
