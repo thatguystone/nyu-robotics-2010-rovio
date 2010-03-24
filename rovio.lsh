@@ -116,27 +116,38 @@
 	(==> rov diagonal-backward-right 5) (sleep 1)
 )
 
-(defmethod rovio showImage (window bwImage)
+(defmethod rovio showImage (bwImage)
 	(gray-draw-matrix 20 20 bwImage 0 1 1 1)
 	(draw-mat bwImage 20 20)
 )
 
 (load "threshold.lsh")
 
+(de test ()
+	(let* (
+		;(image (image-read-rgb "CamImg3332.jpg"))
+		(image (image-read-rgb "CamImg8161.jpg"))
+		(bwImage (threshold image [117 145 43] 26))
+	)
+	
+	(gray-draw-matrix 20 20 bwImage 0 1 1 1)
+	(draw-mat bwImage 20 20)
+	)
+)
+
 (de main (&optional (ip "192.168.1.13") (id "admin") (pw "r0b0t0"))
 	(let* (
 			(rov (new rovio id pw ip 0))
-			(grabbed (==> rov grab))
-			(window (x11-window 0 0 680 520 "Image"))
+			(window (x11-window 0 0 360 280 "Image"))
 		)
-		(==> rov set-resolution 3)
-		(==> rov changeBrightness 3)
+		;(==> rov set-resolution 3) ;;perhaps use mode 1 to get a moderately-sized image that doesn't have a lot of artefacting
+		(==> rov changeBrightness 6) ;;make it so that we can see a bit better
 	
 		(while t
 			(setq image (==> rov grab))
 			(sleep .1) ;; don't request too many images or it crashes
-			(setq bwImage (threshold image [19 30 0] 170))
-			(==> rov showImage window bwImage)
+			(setq bwImage (threshold image [117 145 43] 26))
+			(==> rov showImage bwImage)
 		)
 	)
 )
