@@ -1,5 +1,6 @@
 ;load the image library
-(libload "libimage/image-io.lsh")
+(libload "libimage/image-io")
+(libload "libimage/morpho")
 
 (de rgbToYuv (rgb)
 	((-idx1- (-double-)) rgb)
@@ -38,13 +39,14 @@
 	;setup our threshold image
 	(let* (
 			(bwImage
-				(matrix 
+				(ubyte-matrix
 					(idx-dim image 0)
 					(idx-dim image 1)
 				)
 			)
 			(yuvMatch (rgbToYuv match))
 		)
+		
 		(idx-gloop ((row image) (i))
 			(idx-gloop ((cell row) (j))
 				(let (
@@ -59,12 +61,14 @@
 					(setq yuv (rgbToYuv cellV))
 					
 					(if (> threshold (yuvDistance yuv yuvMatch))
-						(bwImage i j 1)
+						(bwImage i j 255)
 						(bwImage i j 0)
 					)
 				)
 			)
 		)
+		(ubim-erosion bwImage 3)
+		(ubim-dilation bwImage 4)
 		bwImage
 	)
 )
