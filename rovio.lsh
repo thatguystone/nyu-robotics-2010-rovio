@@ -96,8 +96,8 @@
 
 (defmethod rovio findTheBall () 
 	(if (> lastXPos 0)
-		(==> this rotate-right 6)
-		(==> this rotate-left 6)
+		(==> this rotate-right 7)
+		(==> this rotate-left 7)
 	)
 )
 
@@ -132,7 +132,11 @@
 				(setq right (:cc:ccdesc 0 (cc-right)))
 				(setq top (:cc:ccdesc 0 (cc-top)))
 				(setq bottom (:cc:ccdesc 0 (cc-bottom)))
-				
+			)
+		)
+		
+		(if (> bottom (* imageMiddleY .8))
+			(progn 
 				(setq yDistance (/ 8 (tan (+ delta (atan(/ (- bottom imageMiddleY) focalLength))))))
 				
 				;calculate the distance we need to turn
@@ -157,17 +161,22 @@
 
 (defmethod rovio goToball (ballLoc)
 	(let* (
-			(yDist (car ballLoc))
+			(dist (car ballLoc))
 			(angle (cdr ballLoc))
 		)
 		
-		(when (cond (> angle 20) (< angle -20))
-			(print "stabilizing")
-			(if (< angle 0)
-				(==> this rotate-left 6)
-				(==> this rotate-right 6)
+		(when (> dist 30)
+			(if (> angle 20)
+				(==> this rotate-right 7)
 			)
+			
+			(if (< angle -20)
+				(==> this rotate-left 7)
+			)
+			
+			(==> this forward 2 4)
 		)
+		
 		;(printf "Y: %f - Theta: %f\n" yDist angle)
 	)
 )

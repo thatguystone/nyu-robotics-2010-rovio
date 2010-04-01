@@ -1,32 +1,37 @@
-(defmethod rovio move (direction speed)
+(defmethod rovio move (direction speed &optional (loop 5))
 	((-int-) direction)
 	((-int-) speed)
 	(if (or (< speed 0) (> speed 10))
 		(error "speed must be between 0 and 10")
 	)
 	
-	(==> this command "nav" 18 direction speed)
-	(sleep .2)
+	(let (
+			(i 0)
+		)
+		(while (> loop (incr i))
+			(==> this command "nav" 18 direction speed)
+		)
+	)	
 )
 
 (defmethod rovio stop ()
 	(==> this move 0 0)
 )
 
-(defmethod rovio forward (speed)
-	(==> this move 1 speed)
+(defmethod rovio forward (speed &optional (loop 5))
+	(==> this move 1 speed loop)
 )
 
-(defmethod rovio backward (speed)
+(defmethod rovio backward (speed &optional (loop 5))
 	(==> this move 2 speed)
 )
 
-(defmethod rovio straight-left (speed)
-	(==> this move 3 speed)
+(defmethod rovio straight-left (speed &optional (loop 5))
+	(==> this move 3 speed loop)
 )
 
-(defmethod rovio straight-right (speed)
-	(==> this move 4 speed)
+(defmethod rovio straight-right (speed &optional (loop 5))
+	(==> this move 4 speed loop)
 )
 
 (defmethod rovio rotate-left (speed)
