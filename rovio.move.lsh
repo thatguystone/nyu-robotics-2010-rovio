@@ -34,12 +34,12 @@
 	(==> this move 4 speed loop)
 )
 
-(defmethod rovio rotate-left (speed)
-	(==> this move 5 speed)
+(defmethod rovio rotate-left (speed &optional (loop 5))
+	(==> this move 5 speed loop)
 )
 
-(defmethod rovio rotate-right (speed)
-	(==> this move 6 speed)
+(defmethod rovio rotate-right (speed &optional (loop 5))
+	(==> this move 6 speed loop)
 )
 
 (defmethod rovio diagonal-forward-left (speed)

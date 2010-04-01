@@ -8,6 +8,7 @@
 	((-str-) ip)
 	((-int-) lastXPos)
 	((-bool-) ballSeen)
+	((-bool-) hasBall)
 )
 
 ;load our movement commands
@@ -19,6 +20,7 @@
 	(setq password password_)
 	(setq ip ip_)
 	(setq lastXPos 0)
+	(setq hasBall f)
 	(==> this set-resolution resolution)
 )
 
@@ -96,8 +98,8 @@
 
 (defmethod rovio findTheBall () 
 	(if (> lastXPos 0)
-		(==> this rotate-right 7)
-		(==> this rotate-left 7)
+		(==> this rotate-right 6 3)
+		(==> this rotate-left 6 3)
 	)
 )
 
@@ -135,7 +137,7 @@
 			)
 		)
 		
-		(if (> bottom (* imageMiddleY .8))
+		(if (> bottom (* imageMiddleY .7))
 			(progn 
 				(setq yDistance (/ 8 (tan (+ delta (atan(/ (- bottom imageMiddleY) focalLength))))))
 				
@@ -167,36 +169,17 @@
 		
 		(when (> dist 30)
 			(if (> angle 20)
-				(==> this rotate-right 7)
+				(==> this rotate-right 6 4)
 			)
 			
 			(if (< angle -20)
-				(==> this rotate-left 7)
+				(==> this rotate-left 6 4)
 			)
 			
 			(==> this forward 2 4)
 		)
 		
 		;(printf "Y: %f - Theta: %f\n" yDist angle)
-	)
-)
-
-(de test ()
-	(let* (
-			(rov (new rovio "admin" "r0b0t0" "192.168.1.13" 0))
-			(window (x11-window 0 0 360 280 "Image"))
-			
-			;for definition later
-			(image ())
-			(bwImage ())
-		)
-		
-		;(setq image (image-read-rgb "CamImg3934.jpg"))
-		(setq image (image-read-rgb "CamImg3332.jpg"))
-		(setq bwImage (threshold image [102 112 25] 26)) ;;for the tennis ball
-		(==> rov showImage bwImage)
-		(==> rov getDistance bwImage)
-		(sleep 10) ;;keep the window open
 	)
 )
 
