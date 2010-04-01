@@ -1,52 +1,65 @@
 (defmethod rovio move (direction speed)
-  (if (or (< speed 0) (> speed 10))
-      (error "speed must be between 0 and 10"))
-  (==> this command "nav" 18 direction speed))
+	((-int-) direction)
+	((-int-) speed)
+	(if (or (< speed 0) (> speed 10))
+		(error "speed must be between 0 and 10")
+	)
+	
+	(==> this command "nav" 18 direction speed)
+	(sleep .2)
+)
 
 (defmethod rovio stop ()
-  (==> this move 0 0))
+	(==> this move 0 0)
+)
 
 (defmethod rovio forward (speed)
-  (==> this move 1 speed))
+	(==> this move 1 speed)
+)
 
 (defmethod rovio backward (speed)
-  (==> this move 2 speed))
+	(==> this move 2 speed)
+)
 
 (defmethod rovio straight-left (speed)
-  (==> this move 3 speed))
+	(==> this move 3 speed)
+)
 
 (defmethod rovio straight-right (speed)
-  (==> this move 4 speed))
+	(==> this move 4 speed)
+)
 
 (defmethod rovio rotate-left (speed)
-  (==> this move 5 speed))
+	(==> this move 5 speed)
+)
 
 (defmethod rovio rotate-right (speed)
-  (==> this move 6 speed))
-
-(defmethod rovio rotate-left-20-degrees ()
-  (==> this move 17 0))
-
-(defmethod rovio rotate-right-20-degrees ()
-  (==> this move 18 0))
+	(==> this move 6 speed)
+)
 
 (defmethod rovio diagonal-forward-left (speed)
-  (==> this move 7 speed))
+	(==> this move 7 speed)
+)
 
 (defmethod rovio diagonal-forward-right (speed)
-  (==> this move 8 speed))
+	(==> this move 8 speed)
+)
 
 (defmethod rovio diagonal-backward-left (speed)
-  (==> this move 9 speed))
+(==> this move 9 speed))
 
 (defmethod rovio diagonal-backward-right (speed)
-  (==> this move 10 speed))
+	(==> this move 10 speed)
+)
 
 (defmethod rovio head-up ()
-  (==> this move 11 0))
+	(==> this move 11 0)
+)
 
 (defmethod rovio head-down ()
-  (==> this move 12 0))
+	(==> this move 12 0)
+)
 
 (defmethod rovio head-middle ()
-  (==> this move 13 0))
+	(==> this move 13 0)
+)
