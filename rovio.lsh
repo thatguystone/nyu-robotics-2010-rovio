@@ -9,6 +9,7 @@
 	((-int-) lastXPos)
 	((-bool-) ballSeen)
 	((-bool-) hasBall)
+	((-bool-) goalSeen)
 )
 
 ;load our movement commands
@@ -167,6 +168,35 @@
 			(angle (cdr ballLoc))
 		)
 		
+		(if (< dist 30)
+			(setq hasBall t)
+		)
+		
+		(when (> dist 30)
+			(setq hasBall f)
+			(==> rov head-down)
+			(if (> angle 20)
+				(==> this rotate-right 6 4)
+			)
+			
+			(if (< angle -20)
+				(==> this rotate-left 6 4)
+			)
+			
+			(==> this forward 2 4)
+		)
+		
+		;(printf "Y: %f - Theta: %f\n" yDist angle)
+	)
+)
+
+
+(defmethod rovio goToGoal (goalLoc)
+	(let* (
+			(dist (car goalLoc))
+			(angle (cdr goalLoc))
+		)
+		
 		(when (> dist 30)
 			(if (> angle 20)
 				(==> this rotate-right 6 4)
@@ -183,6 +213,87 @@
 	)
 )
 
+(defmethod rovio findTheGoals () 
+	(if (> lastXPos 0)
+		(==> this right 6 3)
+		(==> this left 6 3)
+	)
+)
+
+(defmethod rovio findGoal (image)
+	(let* (
+			(cc (new CCAnalyzer image))
+			(ret (matrix 4))
+			
+			;for the goal positions
+			(left 0)(right 0)(top 0)(bottom 0)(middle 0)
+			
+			;for distance stuff
+			(yDistance 0)(aDistance 0)
+			
+			;;constants (just local values, for now) for calculating the distance to the ball
+			(delta (* 4 (/ 3.14 180)))
+			(imageMiddleX (/ (idx-dim image 0) 2))
+			(imageMiddleY (/ (idx-dim image 1) 2))
+			(focalLength 231)
+			(y 0)(x 0)
+		)
+		
+		(if (==> cc run-analysis 125)
+			(progn
+				(==> cc cc-analysis)
+				;sees to posts, so set the middle as the middle of both post
+				(if (> (idx-dim :cc:desc) 1)	
+					(progn
+						(setq goalSeen t)
+						;if 0 is to the right of 1
+						(if (>  (:cc:ccdesc 0 (cc-left))  (:cc:ccdesc 1 (cc-left)))
+							(setq middle (-  (:cc:ccdesc 0 (cc-left)) (:cc:ccdesc 1 (cc-right)) ))
+						)
+						(if (<  (:cc:ccdesc 0 (cc-left))  (:cc:ccdesc 1 (cc-left)))
+							(setq middle (-  (:cc:ccdesc 1 (cc-left)) (:cc:ccdesc 0 (cc-right)) ))
+						)
+
+
+						;go to ball here
+						(if (> bottom (* imageMiddleY .7))
+							(progn 
+								(setq yDistance (/ 8 (tan (+ delta (atan(/ (- bottom imageMiddleY) focalLength))))))
+				
+								;calculate the distance we need to turn
+								(setq lastXPos middle)
+								(setq y (- (idx-dim image 1) bottom))
+								(setq aDistance (* (atan (/ x y)) (/ 180 3.14)))
+				
+								(printf "Middle: %d \n" middle)
+								(printf "yDistance: %f - aDistance: %f\n" yDistance aDistance)
+				
+							
+							)
+
+						)
+					)
+					(print "lost the goal")
+					(setq goalSeen f)
+					(==> this findTheGoals)
+					;(setq left (:cc:ccdesc 0 (cc-left)))
+					;(setq right (:cc:ccdesc 0 (cc-right)))
+					;(setq top (:cc:ccdesc 0 (cc-top)))
+					;(setq bottom (:cc:ccdesc 0 (cc-bottom)))
+			)
+		)
+		
+		
+			(print "lost the goal")
+			(setq goalSeen f)
+			(==> this findTheGoals)
+		)
+		
+		(cons yDistance aDistance)
+	)
+)
+
+
 (de main (&optional (ip "192.168.1.14") (id "admin") (pw "r0b0t0"))
 	(let* (
 			(rov (new rovio id pw ip 0))
@@ -195,13 +306,31 @@
 		
 		(while t
 			(setq image (==> rov grab))
-			(setq bwImage (threshold image [117 145 43] 26)) ;;for the tennis ball
-			(==> rov showImage bwImage)
-			(setq dist (==> rov getDistance bwImage))
 			
-			(if :rov:ballSeen
-				(==> rov goToBall dist)
+			(if :rov:hasBall
+				(progn
+					(print "I HAZ DA BALL")
+					;(==> rov head-middle)
+					(setq bbImage (threshold image [148 43 35] 26)) ;;for the tennis ball
+					(==> rov showImage bbImage)
+					(setq dist (==> rov findGoal bbImage))
+					(==> rov goToGoal dist)
+				)
 			)
+			;;if it doesn't have it then we look for it
+
+			(if (= :rov:hasBall f)
+				(progn
+					(==> rov head-down)
+					(setq bwImage (threshold image [117 145 43] 26)) ;;for the tennis ball
+					(setq dist (==> rov getDistance bwImage))
+					(==> rov showImage bwImage)
+					(if :rov:ballSeen
+						(==> rov goToBall dist)
+					)					
+				)
+			)
+			
 			
 			;; don't request too many images or it crashes
 			(sleep .2)
