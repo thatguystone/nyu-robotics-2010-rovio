@@ -10,6 +10,7 @@
 		)
 		(while (> loop (incr i))
 			(==> this command "nav" 18 direction speed)
+			(sleep .3)
 		)
 	)	
 )
@@ -42,18 +43,18 @@
 	(==> this move 6 speed loop)
 )
 
-(defmethod rovio diagonal-forward-left (speed)
+(defmethod rovio diagonal-forward-left (speed &optional (loop 5))
 	(==> this move 7 speed)
 )
 
-(defmethod rovio diagonal-forward-right (speed)
+(defmethod rovio diagonal-forward-right (speed &optional (loop 5))
 	(==> this move 8 speed)
 )
 
-(defmethod rovio diagonal-backward-left (speed)
+(defmethod rovio diagonal-backward-left (speed &optional (loop 5))
 (==> this move 9 speed))
 
-(defmethod rovio diagonal-backward-right (speed)
+(defmethod rovio diagonal-backward-right (speed &optional (loop 5))
 	(==> this move 10 speed)
 )
 

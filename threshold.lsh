@@ -38,14 +38,16 @@
 	
 	;setup our threshold image
 	(let* (
+			(x (idx-dim image 1))
+			(y (idx-dim image 0))
+			(y2 (/ y 2))
 			(bwImage
-				(ubyte-matrix
-					(idx-dim image 0)
-					(idx-dim image 1)
-				)
+				(ubyte-matrix (/ y 2) x)
 			)
 			(yuvMatch (rgbToYuv match))
 		)
+		
+		(setq image (narrow image 0 y2 y2)) 
 		
 		(idx-gloop ((row image) (i))
 			(idx-gloop ((cell row) (j))
