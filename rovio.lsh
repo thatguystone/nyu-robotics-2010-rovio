@@ -189,8 +189,6 @@
 		(setq x (- (/ (+ left right) 2) imageMiddleX)) ;find the x position of the ball
 		(setq aDistance (==> this getADistance x))
 		
-		;(pause "aDist")
-		
 		(setq lastXPos x)
 	
 		(printf "Top: %d - Bottom: %d - Left: %d - Right: %d\n" top bottom left right)
@@ -250,7 +248,6 @@
 			(progn
 				(==> cc cc-analysis)
 				(setq ret (callBackFound image cc callBackLost))
-				(==> this correctBack)
 			)
 			(callBackLost)
 		)
