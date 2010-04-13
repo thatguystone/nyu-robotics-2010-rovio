@@ -107,21 +107,28 @@
 	(rgb-draw-matrix 20 20 bwImage 1 1)
 )
 
-(defmethod rovio search () 
+(defmethod rovio search ()
 	(if (> lastXPos 0)
-		(==> this rotate-right 6 2)
-		(==> this rotate-left 6 2)
+		(==> this rotate-right 6 3 .2)
+		(==> this rotate-left 6 3 .2)
+	)
+	
+	;;stop moving...
+	(==> rov stop)
+)
+
+;;since we overshoot once we see something, let's correct back so that we get back to where we're supposed to be
+(defmethod rovio correctBack ()
+	(if (< lastXPos 0)
+		(==> this rotate-right 9 2)
+		(==> this rotate-left 9 2)
 	)
 )
 
 (defmethod rovio searchOrbit () 
 	(if (> lastXPos 0)
-		(progn
-			(==> rov diagonal-forward-left 8 1)
-			(==> rov rotate-right 6 4)
-		)
-		(==> rov diagonal-forward-right 8 1)
-		(==> rov rotate-left 6 4)
+		(==> rov orbit-left)
+		(==> rov orbit-right)
 	)
 )
 
@@ -138,14 +145,14 @@
 		
 		(when (> dist 30)
 			(if (> angle 10)
-				(==> this rotate-right 8 2)
+				(==> this rotate-right 8)
 			)
 			
 			(if (< angle -10)
-				(==> this rotate-left 8 2)
+				(==> this rotate-left 8)
 			)
 			
-			(==> this forward 2 2)
+			(==> this forward 2 3)
 		)
 	)
 )
@@ -168,6 +175,7 @@
 			;for the ball positions
 			(left 0)(right 0)(top 0)(bottom 0)
 			(imageMiddleX (/ (idx-dim image 1) 2))
+			(yDistance 0)(aDistance 0)
 		)
 	
 		(setq left (:cc:ccdesc 0 (cc-left)))
@@ -181,7 +189,7 @@
 		(setq x (- (/ (+ left right) 2) imageMiddleX)) ;find the x position of the ball
 		(setq aDistance (==> this getADistance x))
 		
-		(pause "aDist")
+		;(pause "aDist")
 		
 		(setq lastXPos x)
 	
@@ -203,7 +211,7 @@
 			(ret ())
 		)
 		
-		(if (> (length (idx-dim :cc:ccdesc 1)) 1)
+		(if (= (idx-dim :cc:ccdesc 0) 2)
 			(progn
 				(printf "Bottom: %d Middle: %d"
 					(/ (+ (:cc:ccdesc 0 (cc-bottom)) (:cc:ccdesc 1 (cc-bottom))) 2) 
@@ -242,6 +250,7 @@
 			(progn
 				(==> cc cc-analysis)
 				(setq ret (callBackFound image cc callBackLost))
+				(==> this correctBack)
 			)
 			(callBackLost)
 		)
@@ -250,7 +259,7 @@
 	)
 )
 
-(de main (&optional (ip "192.168.1.13") (id "admin") (pw "r0b0t0"))
+(de main (&optional (ip "192.168.1.11") (id "admin") (pw "r0b0t0"))
 	(let* (
 			(image ())
 			(rov (new rovio id pw ip 0))
@@ -284,7 +293,7 @@
 			)
 			
 			;; don't request too many images or it crashes
-			(sleep .2)
+			;(sleep .2)
 		)
 	)
 )
