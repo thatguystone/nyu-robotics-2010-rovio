@@ -30,11 +30,12 @@
 )
 
 ;define how we threshold things
-(de threshold (image match threshold) 
+(de threshold (image match threshold cutTop) 
 	;declare type for image
 	((-idx3- (-ubyte-)) image)
 	((-idx1- (-double-)) match)
 	((-double-) threshold)
+	((-bool-) cutTop)
 	
 	;setup our threshold image
 	(let* (
@@ -42,12 +43,14 @@
 			(y (idx-dim image 0))
 			(y2 (/ y 2))
 			(bwImage
-				(ubyte-matrix (/ y 2) x)
+				(ubyte-matrix (if cutTop (/ y 2) y)	x)
 			)
 			(yuvMatch (rgbToYuv match))
 		)
 		
-		(setq image (narrow image 0 y2 y2)) 
+		(when cutTop
+			(setq image (narrow image 0 y2 y2))
+		) 
 		
 		(idx-gloop ((row image) (i))
 			(idx-gloop ((cell row) (j))

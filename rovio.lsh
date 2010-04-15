@@ -1,107 +1,8 @@
 (load "threshold.lsh")
 (libload "libimage/cca") ;;for connected component analysis
 
-(defclass rovio object
-	;properties of the class
-	((-str-) user)
-	((-str-) password) 
-	((-str-) ip)
-	((-int-) lastXPos)
-	((-bool-) ballSeen)
-	((-bool-) hasBall)
-	((-bool-) goalSeen)
-	((-bool-) scored)
-	((-int-) focalLength)
-)
-
-;load our movement commands
-(load "rovio.move.lsh")
-
-;when a method has the same name as the class, it's a constructor
-(defmethod rovio rovio (user_ password_ ip_ resolution)
-	(setq user user_)
-	(setq password password_)
-	(setq ip ip_)
-	(setq lastXPos 0)
-	(setq ballSeen f)
-	(setq hasBall f)
-	(setq goalSeen f)
-	(setq scored f)
-	(setq focalLength 231)
-	(==> this set-resolution resolution)
-)
-
-;; mode 0: 176x144
-;; mode 1: 320x240 
-;; mode 2: 352x288
-;; mode 3: 640x480
-(defmethod rovio set-resolution (mode)
-	(printf "Setting resolution mode %d... " mode)
-	(let (
-			(r (sys (sprintf "curl -s \"http://%s:%s@%s/ChangeResolution.cgi?ResType=%d\"" user password ip mode)))
-			(grabbed (==> this grab))
-		)
-		
-		(printf "Resolution is: %dx%d\n" (idx-dim grabbed 1) (idx-dim grabbed 0))
-	)
-)
-
-(defmethod rovio getImageDimensions ()
-	(let (
-			(grabbed (==> this grab))
-		)
-		
-		(printf "Resolution is: %dx%d\n" (idx-dim grabbed 1) (idx-dim grabbed 0))
-	)
-)
-
-;brightness can be between 1 and 6
-(defmethod rovio changeBrightness (brightness)
-	(sys (sprintf "curl -s \"http://%s:%s@%s/ChangeBrightness.cgi?Brightness=%d\"" user password ip brightness))
-)
-
-(defmethod rovio changeQuality (framerate ratio)
-	(sys (sprintf "curl -s \"http://%s:%s@%s/Cmd.cgi?Cmd=ChangeCompressRatio.cgi&Cmd=ChangeFramerate.cgi&Framerate=%d&Ratio=%d\"" user password ip framerate ratio))
-)
-
-(defmethod rovio grab ()
-	(let (
-			(f (popen 
-				(sprintf "curl -s http://%s:%s@%s/Jpeg/CamImg%d.jpg | %s -compress lossless -depth 8 - PPM:-"
-					user
-					password
-					ip
-					(int (rand 0 1000))
-					@@*convert-cmd*
-				)
-				"r"
-			))
-		)
-		
-		(when (not f)
-			(error "couldn't open convert pipe file")
-		)
-		
-		(prog1 (pnm-fread-rgb f) (pclose f))
-	)
-)
-
-(defmethod rovio command (cmd action param1 param2)
-	(let (
-			(r (sys 
-				(sprintf "curl -s \"http://%s:%s@%s/rev.cgi?Cmd=%s&action=%d&drive=%d&speed=%d\" > /dev/null"
-					user
-					password
-					ip
-					cmd
-					action
-					param1
-					param2
-				)
-			))
-		)
-	)
-)
+;load our rovio object, movement commands, and etc
+(load "rovio.command.lsh")
 
 (defmethod rovio showImage (bwImage)
 	(rgb-draw-matrix 20 20 bwImage 1 1)
@@ -132,16 +33,39 @@
 (defmethod rovio goToGoal (loc)
 	(let* (
 			(dist (car loc))
+			(angle (cdr loc))
 			
 			;it moves 4cm per loop
 			(loop (/ dist 4))
 		)
 		
-		(==> this forward 3 loop .1)
+		(printf "yDistance: %f - aDistance: %f\n" dist angle)
 		
-		(setq scored t)
+		(if (and
+				(> angle 20)
+				(< angle -20)
+			)
+			(progn
+				(when (> angle 20)
+					(==> this orbit-left 1)
+				)
 		
-		(print "I made a goal!")
+				(when (< angle -20)
+					(==> this orbit-right 1)
+				)
+			)
+			
+			(when (> dist 100)
+				(setq loop (/ 100 4))
+			)
+			
+			(==> this forward 3 loop .15)
+			
+			(when (< dist 100)
+				(setq scored t)
+				(print "I made a goal!")
+			)
+		)
 	)
 )
 
@@ -234,7 +158,7 @@
 				(setq middle (/ (+ (:cc:ccdesc 0 (cc-right)) (:cc:ccdesc 1 (cc-left))) 2))
 				(setq lastXPos middle)
 			
-				(printf "Bottom: %d Middle: %d\n" bottom middle)
+				(printf "Bottom: %d - Middle: %d\n" bottom middle)
 			
 				(setq ret (cons (==> this getHDistance bottom) (==> this getADistance middle)))
 				(setq goalSeen t)
@@ -279,7 +203,37 @@
 	)
 )
 
-(de main (&optional (ip "192.168.1.11") (id "admin") (pw "r0b0t0"))
+(defmethod rovio findGoal (image)
+	(let* (
+			(bwImage (threshold image [148 43 35] 26 f)) ;;for the goals
+			(dist 0)
+		)
+		
+		(==> this showImage bwImage)
+		(setq dist (==> this getDistance bwImage (check==> rovio 'getPosGoal) (check==> rovio 'goalLost)))
+
+		(if :rov:goalSeen
+			(==> this goToGoal dist)
+		)
+	)
+)
+
+(defmethod rovio findBall (image)
+	(let* (
+			(bwImage (threshold image [117 145 43] 26 t)) ;;for the goals
+			(dist 0)
+		)
+		
+		(==> this showImage bwImage)
+		(setq dist (==> this getDistance bwImage (check==> rovio 'getPosBall) (check==> rovio 'ballLost)))
+
+		(if :rov:ballSeen
+			(==> this goToBall dist)
+		)
+	)
+)
+
+(de main (&optional (ip "192.168.1.12") (id "admin") (pw "r0b0t0"))
 	(let* (
 			(image ())(bwImage ())
 			(rov (new rovio id pw ip 0))
@@ -295,25 +249,11 @@
 			(setq image (==> rov grab))
 			
 			(if :rov:hasBall
-				(progn
-					(setq bwImage (threshold image [148 43 35] 26)) ;;for the goals
-					(==> rov showImage bwImage)
-					(setq dist (==> rov getDistance bwImage (check==> rovio 'getPosGoal) (check==> rovio 'goalLost)))
-					(if :rov:goalSeen
-						(==> rov goToGoal dist)
-					)
-				)
-				
-				(setq bwImage (threshold image [117 145 43] 26)) ;;for the tennis ball
-				(==> rov showImage bwImage)
-				(setq dist (==> rov getDistance bwImage (check==> rovio 'getPosBall) (check==> rovio 'ballLost)))
-				(if :rov:ballSeen
-					(==> rov goToBall dist)
-				)
+				(==> rov findGoal image)
+				(==> rov findBall image)
 			)
-			
-			;; don't request too many images or it crashes
-			;(sleep .2)
 		)
+		
+		(pause "Goal Scored")
 	)
 )
