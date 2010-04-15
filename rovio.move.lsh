@@ -12,60 +12,62 @@
 )
 
 (defmethod rovio stop ()
-	(==> this move 0 0)
+	(==> this move 0 0 1 .1)
 )
 
 (defmethod rovio forward (speed &optional (loop 5) (wait .1))
-	(==> this move 1 speed loop)
+	(==> this move 1 speed loop wait)
 )
 
 (defmethod rovio orbit-right (&optional (loop 2))
 	(repeat loop
-		(==> this move 3 1 .1) ;straight-left
-		(==> this move 6 1 .01) ;rotate-right
+		(==> this move 3 5 1 .15) ;straight-left
+		(==> this move 6 5 1 .07) ;rotate-right
 	)
+	(==> this stop)
 )
 
 (defmethod rovio orbit-left (&optional (loop 2))
 	(repeat loop
-		(==> this move 4 1 .1) ;straight-right
-		(==> this move 5 1 .01) ;rotate-left
+		(==> this move 4 5 1 .15) ;straight-right
+		(==> this move 5 5 1 .07) ;rotate-left
 	)
 )
 
 (defmethod rovio backward (speed &optional (loop 5) (wait .1))
-	(==> this move 2 speed)
+	(==> this move 2 speed wait)
 )
 
 (defmethod rovio straight-left (speed &optional (loop 5) (wait .1))
-	(==> this move 3 speed loop)
+	(==> this move 3 speed loop wait)
 )
 
 (defmethod rovio straight-right (speed &optional (loop 5) (wait .1))
-	(==> this move 4 speed loop)
+	(==> this move 4 speed loop wait)
 )
 
 (defmethod rovio rotate-left (speed &optional (loop 5) (wait .1))
-	(==> this move 5 speed loop)
+	(==> this move 5 speed loop wait)
 )
 
 (defmethod rovio rotate-right (speed &optional (loop 5) (wait .1))
-	(==> this move 6 speed loop)
+	(==> this move 6 speed loop wait)
 )
 
 (defmethod rovio diagonal-forward-left (speed &optional (loop 5) (wait .1))
-	(==> this move 7 speed)
+	(==> this move 7 speed wait)
 )
 
 (defmethod rovio diagonal-forward-right (speed &optional (loop 5) (wait .1))
-	(==> this move 8 speed)
+	(==> this move 8 speed wait)
 )
 
 (defmethod rovio diagonal-backward-left (speed &optional (loop 5) (wait .1))
-(==> this move 9 speed))
+	(==> this move 9 speed wait)
+)
 
 (defmethod rovio diagonal-backward-right (speed &optional (loop 5) (wait .1))
-	(==> this move 10 speed)
+	(==> this move 10 speed wait)
 )
 
 (defmethod rovio head-up ()
