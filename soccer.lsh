@@ -37,23 +37,14 @@
 			
 			;it moves 4cm per loop
 			(loop (/ dist 4))
-
-			;;the distance that we should move every time we come through here
-			(perRun 150)
 		)
 		
 		(printf "yDistance: %f - aDistance: %f\n" dist angle)
 
-		(when (> dist perRun)
-			(setq loop (/ perRun 4))
-		)
-			
 		(==> this forward 3 loop .15)
 			
-		(when (< dist perRun)
-			(setq scored t)
-			(print "I made a goal!")
-		)
+		(setq scored t)
+		(print "I made a goal!")
 	)
 )
 
@@ -232,7 +223,7 @@
 	)
 )
 
-(de main (&optional (ip "12"))
+(de main (&optional (ip "21"))
 	(let* (
 			(image ())(bwImage ())
 			(rov (new rovio ip))
@@ -254,5 +245,14 @@
 		)
 		
 		(pause "Goal Scored")
+	)
+)
+
+(de reboot (&optional (ip "14"))
+	(let* (
+			(rov (new rovio ip))
+		)
+
+		(==> rov reboot)
 	)
 )

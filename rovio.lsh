@@ -147,7 +147,7 @@
 (defmethod rovio grab ()
 	(let (
 			(f (popen 
-				(sprintf "curl -s http://%s:%s@%s/Jpeg/CamImg%d.jpg | %s -compress lossless -depth 8 - PPM:-"
+				(sprintf "curl -s -m 5 http://%s:%s@%s/Jpeg/CamImg%d.jpg | %s -compress lossless -depth 8 - PPM:-"
 					user
 					password
 					ip
@@ -163,6 +163,16 @@
 		)
 		
 		(prog1 (pnm-fread-rgb f) (pclose f))
+	)
+)
+
+(defmethod rovio reboot () 
+	(sys 
+		(sprintf "curl -s \"http://%s:%s@%s/Reboot.cgi\" > /dev/null"
+			user
+			password
+			ip
+		)
 	)
 )
 
