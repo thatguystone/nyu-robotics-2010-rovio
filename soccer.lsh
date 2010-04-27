@@ -8,6 +8,42 @@
 	(rgb-draw-matrix 20 20 bwImage 1 1)
 )
 
+;
+;***********************************************
+;***********************************************
+;*** The following are goal-specific methods ***
+;***********************************************
+;***********************************************
+;
+
+(defmethod rovio goalLost (&optional (speed 5))
+	(print "lost the goal")
+	(setq goalSeen f)
+	(==> this searchOrbit speed)
+)
+
+(defmethod rovio searchOrbit (&optional (speed 5)) 
+	(if (> lastGoalXPos 0)
+		(==> rov orbit-left speed)
+		(==> rov orbit-right speed)
+	)
+)
+
+(defmethod rovio findGoal (image)
+	(let* (
+			(bwImage (threshold image [148 43 35] 26 f)) ;;for the goals
+			(dist 0)
+		)
+		
+		(==> this showImage bwImage)
+		(setq dist (==> this getDistance bwImage (check==> rovio 'getPosGoal) (check==> rovio 'goalLost)))
+
+		(if :rov:goalSeen
+			(==> this goToGoal dist)
+		)
+	)
+)
+
 (defmethod rovio search (&optional (speed 5))
 	(if (> lastXPos 0)
 		(==> this rotate-right speed 2 .1)
@@ -18,18 +54,6 @@
 	(==> rov stop)
 )
 
-(defmethod rovio searchOrbit (&optional (speed 5)) 
-	(if (> lastGoalXPos 0)
-		(==> rov orbit-left speed)
-		(==> rov orbit-right speed)
-	)
-)
-
-(defmethod rovio goToBall (ballLoc)
-	(setq hasBall (< (car ballLoc) 30))
-	(==> this goToLoc ballLoc)		
-)
-
 (defmethod rovio goToGoal (loc)
 	(let* (
 			(dist (car loc))
@@ -38,15 +62,30 @@
 			(loop 0)
 
 			;;max distance it's allowed to move before checking again
-			(maxDist 50)
+			(maxDist 10)
+
+			(bwImage ())
+			(cc ())
 		)
 		
 		(while (> dist maxDist)
-			(printf "yDistance: %f - aDistance: %f\n" dist angle)
 			(setq loop (/ maxDist 4))
 			(==> this forward 3 loop .15)
 			
-			(setq dist (car (==> this getGoalDistance (==> this grab))))
+			(setq bwImage (threshold (==> this grab) [148 43 35] 26 f))
+			(setq cc (new CCAnalyzer bwImage))
+
+			(if (==> cc run-analysis 125)
+				(progn
+					(==> cc cc-analysis)
+
+					(if (= (idx-dim :cc:ccdesc 0) 2)
+						(setq dist (car (==> this getGoalDist bwImage)))
+					)
+					(setq dist 50)
+				)
+				(setq dist 10)
+			)
 		)
 
 		(setq loop (/ dist 4))
@@ -57,39 +96,86 @@
 	)
 )
 
-(defmethod rovio goToLoc (loc)
+(defmethod rovio getGoalDist (image)
 	(let* (
-			(dist (car loc))
-			(angle (cdr loc))
+			;for the ball positions
+			(middle 0)(bottom 0)
+			(imageMiddleX (/ (idx-dim image 0) 2))
+			(imageMiddleY (/ (idx-dim image 1) 2))
+		)
+
+		(setq bottom (- imageMiddleY (/ (+ (:cc:ccdesc 0 (cc-bottom)) (:cc:ccdesc 1 (cc-bottom))) 2)))
+		(setq middle (- imageMiddleX (/ (+ (:cc:ccdesc 0 (cc-right)) (:cc:ccdesc 1 (cc-left))) 2)))
+		(setq lastXPos middle)
+		(cons (==> this getHDistance bottom) (==> this getADistance middle))
+	)
+)
+
+(defmethod rovio getPosGoal (image cc callBackLost)
+	(let* (
+			(ret ())
 		)
 		
-		(when (> dist 30)
-			(if (> angle 10)
-				(==> this rotate-right 8 2 .2)
+		(if (and 
+				(= (idx-dim :cc:ccdesc 0) 2) ;if we have two components
+				(> (+ (:cc:ccdesc 0 (cc-right)) (:cc:ccdesc 1 (cc-left))) 10) ;if we're not seeing a fragmented component
+			) 
+			(progn
+				(setq ret (==> this getGoalDist image))
+
+				(printf "Goal: Dist: %d - Angle: %d\n" (car ret) (cdr ret))
+
+				;if we need to do some corrections to get the goal in the center
+				(if (and
+						(< (cdr ret) 10)
+						(> (cdr ret) -10)
+					)
+					(progn
+						(setq goalSeen t)
+						(print "goals seen")
+					)
+
+					;continue adjusting until we get to a decent shooting spot
+					(callBackLost 9)
+				)
 			)
 			
-			(if (< angle -10)
-				(==> this rotate-left 8 2 .2)
+			(callBackLost)
+			(setq goalSeen f)
+		)
+		
+		ret
+	)
+)
+
+(defmethod rovio viewGoal (image)
+	(let* (
+			(imageMiddleX (/ (idx-dim image 1) 2))
+			(bwImage (threshold image [148 43 35] 26 f)) ;;for the goals
+			(cc (new CCAnalyzer bwImage))
+		)
+		(==> this showImage bwImage)
+		
+		(if (==> cc run-analysis 125)
+			(progn
+				(==> cc cc-analysis)
+				(setq lastGoalXPos (- imageMiddleX (:cc:ccdesc 0 (cc-left))))
 			)
-			
-			(==> this forward 8 2)
 		)
 	)
 )
 
-(defmethod rovio getHDistance (middle)
-	((-int-) middle)
-	(let* (
-			(delta (* 4 (/ 3.14 180)))
-		)
-		
-		(/ 8 (tan (+ delta (atan(/ middle focalLength)))))
-	)
-)
+;
+;***********************************************
+;***********************************************
+;*** The following are ball-specific methods ***
+;***********************************************
+;***********************************************
+;
 
-(defmethod rovio getADistance (x)
-	((-int-) x)
-	(* (atan (/ x focalLength)) (/ 180 3.14))
+(defmethod rovio goToBall (ballLoc)
+	(setq hasBall (< (car ballLoc) 30))
+	(==> this goToLoc ballLoc)		
 )
 
 (defmethod rovio getPosBall (image cc callBackLost)
@@ -128,57 +214,6 @@
 	)
 )
 
-(defmethod rovio getGoalDist (image)
-	(let* (
-			;for the ball positions
-			(middle 0)(bottom 0)
-			(imageMiddleX (/ (idx-dim image 0) 2))
-			(imageMiddleY (/ (idx-dim image 1) 2))
-		)
-
-		(setq bottom (- imageMiddleY (/ (+ (:cc:ccdesc 0 (cc-bottom)) (:cc:ccdesc 1 (cc-bottom))) 2)))
-		(setq middle (- imageMiddleX (/ (+ (:cc:ccdesc 0 (cc-right)) (:cc:ccdesc 1 (cc-left))) 2)))
-		(setq lastXPos middle)
-		(cons (==> this getHDistance bottom) (==> this getADistance middle))
-	)
-)
-
-(defmethod rovio getPosGoal (image cc callBackLost)
-	(let* (
-			(ret ())
-		)
-		
-		(if (and 
-				(= (idx-dim :cc:ccdesc 0) 2) ;if we have two components
-				(> (+ (:cc:ccdesc 0 (cc-right)) (:cc:ccdesc 1 (cc-left))) 10) ;if we're not seeing a fragmented component
-			) 
-			(progn
-				(setq ret (==> this getGoalDist image))
-
-				(printf "Goal: Dist: %d - Angle: %d\n" (car ret) (cdr ret))
-
-				;if we need to do some corrections to get the goal in the center
-				(if (and
-						(< (cdr ret) 15)
-						(> (cdr ret) -15)
-					)
-					(progn
-						(setq goalSeen t)
-						(print "goals seen")
-					)
-
-					;continue adjusting until we get to a decent shooting spot
-					(callBackLost 9)
-				)
-			)
-			
-			(callBackLost)
-			(setq goalSeen f)
-		)
-		
-		ret
-	)
-)
 
 (defmethod rovio ballLost (&optional (speed 5))
 	(print "lost the ball")
@@ -186,11 +221,30 @@
 	(==> this search speed)
 )
 
-(defmethod rovio goalLost (&optional (speed 5))
-	(print "lost the goal")
-	(setq goalSeen f)
-	(==> this searchOrbit speed)
+(defmethod rovio findBall (image)
+	(let* (
+			(bwImage (threshold image [117 145 43] 26 t)) ;;for the goals
+			(dist 0)
+		)
+		
+		(==> this showImage bwImage)
+		(setq dist (==> this getDistance bwImage (check==> rovio 'getPosBall) (check==> rovio 'ballLost)))
+
+		(==> this viewGoal image)
+		
+		(if :rov:ballSeen
+			(==> this goToBall dist)
+		)
+	)
 )
+
+;
+;*****************************************
+;*****************************************
+;*** The following are generic methods ***
+;*****************************************
+;*****************************************
+;
 
 (defmethod rovio getDistance (image callBackFound callBackLost)
 	(let* (
@@ -210,53 +264,39 @@
 	)
 )
 
-(defmethod rovio viewGoal (image)
+(defmethod rovio goToLoc (loc)
 	(let* (
-			(imageMiddleX (/ (idx-dim image 1) 2))
-			(bwImage (threshold image [148 43 35] 26 f)) ;;for the goals
-			(cc (new CCAnalyzer bwImage))
+			(dist (car loc))
+			(angle (cdr loc))
 		)
-		(==> this showImage bwImage)
 		
-		(if (==> cc run-analysis 125)
-			(progn
-				(==> cc cc-analysis)
-				(setq lastGoalXPos (- imageMiddleX (:cc:ccdesc 0 (cc-left))))
+		(when (> dist 30)
+			(if (> angle 10)
+				(==> this rotate-right 8 2 .2)
 			)
+			
+			(if (< angle -10)
+				(==> this rotate-left 8 2 .2)
+			)
+			
+			(==> this forward 8 2)
 		)
 	)
 )
 
-(defmethod rovio findGoal (image)
+(defmethod rovio getHDistance (middle)
+	((-double-) middle)
 	(let* (
-			(bwImage (threshold image [148 43 35] 26 f)) ;;for the goals
-			(dist 0)
+			(delta (* 4 (/ 3.14 180)))
 		)
 		
-		(==> this showImage bwImage)
-		(setq dist (==> this getDistance bwImage (check==> rovio 'getPosGoal) (check==> rovio 'goalLost)))
-
-		(if :rov:goalSeen
-			(==> this goToGoal dist)
-		)
+		(/ 8 (tan (+ delta (atan(/ middle focalLength)))))
 	)
 )
 
-(defmethod rovio findBall (image)
-	(let* (
-			(bwImage (threshold image [117 145 43] 26 t)) ;;for the goals
-			(dist 0)
-		)
-		
-		(==> this showImage bwImage)
-		(setq dist (==> this getDistance bwImage (check==> rovio 'getPosBall) (check==> rovio 'ballLost)))
-
-		(==> this viewGoal image)
-		
-		(if :rov:ballSeen
-			(==> this goToBall dist)
-		)
-	)
+(defmethod rovio getADistance (x)
+	((-double-) x)
+	(* (atan (/ x focalLength)) (/ 180 3.14))
 )
 
 (de main (&optional (ip "10"))
@@ -291,8 +331,4 @@
 
 		(==> rov reboot)
 	)
-)
-
-(dhc-make ()
-	(rovio getHDistance getADistance)
 )

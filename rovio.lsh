@@ -23,6 +23,7 @@
 	(setq goalSeen f)
 	(setq scored f)
 	(setq focalLength 231)
+	(setq lastGoalXPos 0)
 	
 	(==> this set-resolution resolution)
 )
@@ -33,11 +34,26 @@
 	(if (or (< speed 0) (> speed 10))
 		(error "speed must be between 0 and 10")
 	)
-	
+
 	(repeat loop
 		(==> this command "nav" 18 direction speed)
 		(sleep wait)
 	)
+
+
+	;(let* (
+	;		(i 0)
+	;	)
+	;
+	;	(while (< i loop)
+	;		(==> this command "nav" 18 direction speed)
+	;		;don't sleep on the last command, let us start calculations for the next movement
+	;		(when (> (- loop i) 1)
+	;			(sleep wait)
+	;		)
+	;		(incr i)
+	;	)
+	;)
 )
 
 (defmethod rovio stop ()
